@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon.ico" tppabs="http://v3.bootcss.com/favicon.ico">
+
+    <title>我的说说</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" tppabs="http://cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/css/jumbotron.css" tppabs="http://v3.bootcss.com/examples/jumbotron/jumbotron.css" rel="stylesheet">
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="../../../cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"
+            tppabs="http://cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="../../../cdn.bootcss.com/respond.js/1.4.2/respond.min.js"
+            tppabs="http://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <style>
+        .pic{
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<!--include模版引擎-->
+<% include header.ejs %>
+
+<% if(!login){ %>
+<div class="jumbotron">
+    <div class="container">
+        <div class="row">
+            <div class='col-lg-6'>
+                <h1>
+                    欢迎登录
+                </h1>
+                <p>This is a personal practice forum welcome everyone to register!</p>
+                <p><a class="btn btn-primary btn-lg" href="/reglist" role="button">注册</a></p>
+            </div>
+            <div class='col-lg-6'>
+                <p>Existing account login</p>
+                <form>
+                    <div class="form-group">
+                        <label for="exampleInputEmail1">用户名</label>
+                        <input type="text" class="form-control" id="username" placeholder="请输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" class="form-control" id="password" placeholder="请输入密码">
+                    </div>
+                    <button type="button" id="denglu" class="btn btn-success">登录</button>
+                </form>
+                <div class="alert alert-danger" role="alert" id='cuowukuang' style='display: none'>
+                    用户被占用
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!--没有登录的时候显示登录提示-->
+<% }else{ %>
+<!--登录显示发言框-->
+<div class="jumbotron">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-1">
+                <a href="/setavatar"><img class="avatar" style='width: 100px ;height:100px' src="/avatar/<%= avatar %>"
+                                          alt=""/></a>
+            </div>
+            <div class="col-lg-6 col-lg-offset-1">
+                <p><%= username %></p>
+                <textarea name="content" id="content" cols="80" rows="4"></textarea>
+                <button type="button" id="fabiao" class="btn btn-success">发表说说</button>
+            </div>
+        </div>
+    </div>
+</div>
+<% } %>
+<div class="container">
+    <!-- Example row of columns -->
+    <div class="row quanbushuoshuo">
+    </div>
+    <hr>
+</div> <!-- /container -->
+
+
+<script type='text/template' id='moban'>
+    <div class="col-md-4">
+
+        <h2><img  class='pic' style='width: 40px;height: 40px' src="/avatar/{{=avatar}}" alt=""> {{=username}}</h2>
+        <p>{{=content}}</p>
+        <p>{{=datetime}}</p>
+        <p><a class="btn btn-default" href="#" role="button">details &raquo;</a></p>
+    </div>
+</script>
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="js/jquery-1.11.3.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/underscore-noflect.js"></script>
+<script src='js/underscore-noflect.js'></script>
+</body>
+</html>
+<script>
+    //得到模版
+    var $quanbushuoshuo = $('.quanbushuoshuo')
+    var compiled = _.template($('#moban').html());
+    getPage(0);
+    //请求分页的说说信息
+    function getPage(page) {
+
+        //将现在的页面内容清除
+        $(".quanbushuoshuo").html("");
+        $.ajax({
+            "url": "/getallshuoshuo?page=" + page,
+            "type": "get",
+            "success": function (result) {
+                console.log(result)
+                //result是一个数组
+                //console.log(Array.isArray(result));
+                iterator(0);
+                //迭代器
+                function iterator(i) {
+                    if (i == result.length) {
+                        //在这里书写请求完毕之后做的事情
+                        return;  //不用继续迭代了
+                    }
+                    $.get("/getuserinfo?username=" + result[i].username, function (result2) {
+                                //修改字典，给字典增加一项
+                                result[i].avatar = result2.avatar;
+                                //组装模板
+                                var htmlstring = compiled(result[i]);
+                                //添加DOM
+                                $(".quanbushuoshuo").append($(htmlstring));
+                                iterator(i + 1);
+                            }
+                    );
+                }
+            }
+        });
+    }
+    $("#username").on('focus', function () {
+        $("#cuowukuang").fadeOut(200);
+    })
+    $("#denglu").click(function () {
+        $.post("/dologin", {
+            "username": $("#username").val(),
+            "password": $("#password").val()
+        }, function (result) {
+            if (result == '1') {
+                window.location = '/';
+            } else if (result == '-1') {
+                console.log('错误');
+                $("#cuowukuang").fadeIn(200);
+                $("#cuowukuang").html('没有这个用户名');
+            } else if (result == '-2') {
+                $("#cuowukuang").fadeIn(200);
+                $("#cuowukuang").html('密码错误');
+            }
+        })
+    })
+    $("#fabiao").click(function () {
+        $.post("/post", {
+            'content': $('#content').val()
+        }, function (result) {
+            if (result == '1') {
+                alert('发布成功')
+            } else {
+                alert('发布失败,请联系管理员')
+            }
+        })
+    })
+
+</script>
